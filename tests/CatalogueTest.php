@@ -225,3 +225,11 @@ it('renders a shelf, a product and a donation form from the same data', function
     $donate = Blade::render('<x-fourthwall::donate :amounts="[5, 10, 20]" />');
     expect($donate)->toContain('action="https://shop.test/donation/"')->toContain('value="10.00"');
 });
+
+it('never resizes a signed imgproxy URL, which would break it', function () {
+    $signed = new \Ombabush\Fourthwall\Data\Image('https://imgproxy.fourthwall.dev/h6mUydqw/rt:fill/w:422/sm:1/enc/x.webp');
+    $open = new \Ombabush\Fourthwall\Data\Image('https://imgproxy.example.com/insecure/rt:fill/w:422/plain/x.jpg');
+
+    expect($signed->width(900))->toBe($signed->url)
+        ->and($open->width(900))->toBe('https://imgproxy.example.com/insecure/rt:fill/w:900/plain/x.jpg');
+});

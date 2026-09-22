@@ -14,21 +14,21 @@ final class Image implements JsonSerializable
     ) {}
 
     /**
-     * The same picture at another width.
+     * The same picture at another width — where the URL allows it.
      *
-     * Fourthwall serves product photographs through imgproxy, and the width is
-     * a path segment — `…/rt:fill/w:422/…` — so a 1200px original need not be
-     * sent to a 180px card. URLs that are not imgproxy come back unchanged.
+     * Fourthwall serves photographs through imgproxy, where the width is a
+     * path segment (`…/rt:fill/w:422/…`) — but the FIRST segment is an HMAC
+     * signature over the rest, so changing the width breaks the URL (imgproxy
+     * answers 400). Only an unsigned imgproxy URL (`/insecure/` or `/_/`) is
+     * rewritten; anything else comes back exactly as the shop sent it.
      */
     public function width(int $width): string
     {
-        if (! str_contains($this->url, 'imgproxy.')) {
+        if (! preg_match('#^https?://[^/]*imgproxy[^/]*/(insecure|_)/#', $this->url)) {
             return $this->url;
         }
 
-        return preg_match('#/w:\d+/#', $this->url)
-            ? preg_replace('#/w:\d+/#', "/w:{$width}/", $this->url, 1)
-            : $this->url;
+        return preg_replace('#/w:\d+/#', "/w:{$width}/", $this->url, 1);
     }
 
     public function ratio(): ?float
