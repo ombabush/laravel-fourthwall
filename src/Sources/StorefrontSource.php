@@ -158,7 +158,8 @@ class StorefrontSource implements Source
                 : null,
             sku: $v['sku'] ?? null,
             color: $v['attributes']['color']['name'] ?? null,
-            swatch: $v['attributes']['color']['swatch'] ?? null,
+            // It goes into a style attribute; only a colour is let through.
+            swatch: preg_match('/^#[0-9a-f]{3,8}$/i', (string) ($v['attributes']['color']['swatch'] ?? '')) ? $v['attributes']['color']['swatch'] : null,
             size: $v['attributes']['size']['name'] ?? null,
             available: ! $limited || (int) ($stock['inStock'] ?? 0) > 0,
             stock: $limited ? (int) ($stock['inStock'] ?? 0) : null,

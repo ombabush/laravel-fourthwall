@@ -19,9 +19,9 @@ Fourthwall::donationUrl(10);
 
 ## What it is not
 
-**It never takes money.** There is no cart of ours, no card, no address and no
-order table. Fourthwall does checkout, tax, shipping, refunds and chargebacks
-for a living. What a content site is missing is not a shop, it is a *shelf*:
+**It never takes money.** There is no card, no address and no order table
+here, and even the optional cart is Fourthwall's, held by id. Fourthwall does
+checkout, tax, shipping, refunds and chargebacks for a living. What a content site is missing is not a shop, it is a *shelf*:
 the products on its own pages, linking out.
 
 It keeps **nothing in your database**. Fourthwall's official headless starter
@@ -133,7 +133,7 @@ $p = Fourthwall::product('mosquito-scan-1993-black-print-t-shirt');
 $p->name;  $p->price;  $p->maxPrice;  $p->compareAt;     // Money
 $p->hasPriceRange();                                      // 2XL often costs more
 $p->colors();  $p->sizes();  $p->swatches();              // ['Black' => '#000000']
-$p->image()->width(400);                                  // imgproxy resizes by URL
+$p->image()->width(400);                                  // resized only if the URL is unsigned; Fourthwall's are signed
 $p->variants()->where('available', true);
 $p->excerpt(160);                                         // plain text
 $p->descriptionHtml();                                    // safe: text tags only, no attributes but href
@@ -177,9 +177,88 @@ them: `php artisan vendor:publish --tag=fourthwall-views`.
 | `<x-fourthwall::donate>` | Amounts, name and message, handed to Fourthwall's donation page. |
 | `<x-fourthwall::filters>` | A GET filter bar built from `facets()`. |
 | `<x-fourthwall::price>` | «$15», «from $15», or the old price struck through. |
+| `<x-fourthwall::add-to-cart>` | Into the site's cart, or straight into checkout where there is none. |
+| `<x-fourthwall::cart-icon>`, `<x-fourthwall::cart>` | See *A cart on your own site*. |
+| `<x-fourthwall::promo>`, `<x-fourthwall::supporters>` | See *Promotions and supporters*. |
 
 Strings are in English and Russian. Publish them with `--tag=fourthwall-lang`
 to add a language.
+
+## A cart on your own site
+
+With a storefront token, visitors can fill a cart on your pages and check out
+with several things at once.
+
+```env
+FOURTHWALL_STOREFRONT_TOKEN=ptkn_…
+FOURTHWALL_CART_PATH=shop/cart      # mounts POST shop/cart/add|change|remove, GET shop/cart/checkout
+FOURTHWALL_CART_PAGE=shop.cart      # YOUR route that shows <x-fourthwall::cart />
+```
+
+```blade
+<x-fourthwall::cart-icon />                   {{-- in the header: an icon and a count --}}
+<x-fourthwall::add-to-cart :product="$p" />   {{-- «add to cart», or «buy» where there is no cart --}}
+<x-fourthwall::cart />                        {{-- on your cart page --}}
+```
+
+This is how Fourthwall's own headless starter does it:
+
+- The cart lives in Fourthwall's Storefront API. Only its id lives in the
+  visitor's session.
+- Checkout is a 303 to `/cart/checkout?cartId=…`.
+- The item count is kept in the session and updated on every change, so the
+  header icon **costs no request on any page**.
+- A cart id that has expired, or has already been checked out, is dropped,
+  and the next click starts a new cart.
+- Every form is a plain POST that works without JavaScript. Send
+  `Accept: application/json` to get the cart back as JSON for a drawer.
+
+Every cart carries **metadata**. The site comes from `cart.metadata`, and
+`source_page`, the page the click came from, is added by the package. Both
+come back on the order next to the UTM tags, so an order says which page sold
+it.
+
+**The shop's own cart cannot be read.** Its cookies belong to its domain, and
+anything that tries to share them breaks in Safari. What the package holds is
+a second cart that goes to the same checkout. It does not mirror the shop's.
+
+## Promotions and supporters
+
+With the Platform API user (server-side only):
+
+```blade
+<x-fourthwall::promo />              {{-- «−15% with the code SNIFF15», linked to checkout with the coupon --}}
+<x-fourthwall::supporters :limit="12" />
+```
+
+- **Promotions** shows the shop's live promotions, and only public ones: a
+  members-only discount advertised to everyone would be a promise most
+  visitors cannot use. When the promotion ends, the banner renders nothing.
+- **Supporters** shows recent completed donations: the name the donor typed,
+  the amount and the message. Fourthwall's record also carries the donor's
+  e-mail address, which is **dropped before anything is cached**.
+
+Both are cached like the catalogue and refreshed by `fourthwall:refresh` and
+by the `PROMOTION_*` and `DONATION` webhooks.
+
+## What your credentials allow
+
+```php
+Fourthwall::supports(Capability::Carts);   // false without a storefront token
+Fourthwall::capabilities();                // everything that is on
+```
+
+| | shop address | + storefront token | + Platform API user | + webhook |
+|---|:-:|:-:|:-:|:-:|
+| catalogue, checkout links, donations | ✓ | ✓ | ✓ | ✓ |
+| collections list, stock counts, **cart** | | ✓ | ✓ | ✓ |
+| promotions, supporters | | | ✓ | ✓ |
+| instant updates | | | | ✓ |
+
+Components check this themselves. Without a cart, `add-to-cart` is a «buy»
+link, and without promotions, `promo` renders nothing. One template works at
+every level. `fourthwall:check` prints the table for whatever credentials it
+is given.
 
 ## Freshness
 

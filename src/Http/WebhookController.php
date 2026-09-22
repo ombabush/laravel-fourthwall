@@ -59,6 +59,13 @@ class WebhookController
             }
         }
 
+        // What the Platform API told us: a promotion changed, or someone gave.
+        if (str_starts_with($type, 'PROMOTION_')) {
+            $fourthwall->forget('platform.promotions');
+        } elseif ($type === 'DONATION') {
+            $fourthwall->forget('platform.supporters');
+        }
+
         event(new FourthwallWebhookReceived($type, $payload));
 
         return response()->json(['ok' => true, 'type' => $type]);

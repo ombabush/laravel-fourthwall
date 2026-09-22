@@ -5,6 +5,7 @@ namespace Ombabush\Fourthwall\Commands;
 use Illuminate\Console\Command;
 use Ombabush\Fourthwall\Data\Money;
 use Ombabush\Fourthwall\Data\Product;
+use Ombabush\Fourthwall\Fourthwall;
 use Ombabush\Fourthwall\Platform;
 use Ombabush\Fourthwall\Sources\FeedSource;
 use Ombabush\Fourthwall\Sources\StorefrontSource;
@@ -67,6 +68,17 @@ class FourthwallCheckCommand extends Command
         if ($c['token']) {
             $this->section('Storefront API  (public token)');
             $this->source(new StorefrontSource($c['token'], rtrim(config('fourthwall.endpoints.storefront'), '/'), $currency, $c['shop'], $timeout), 'storefront');
+        }
+
+        // What these credentials, together, would switch on in a site.
+        $fw = Fourthwall::fromConfig(['shop' => $c['shop'], 'storefront_token' => $c['token'],
+            'api_username' => $c['username'], 'api_password' => $c['password'],
+            'webhook' => config('fourthwall.webhook')] + config('fourthwall'), app('cache')->store('array'));
+        $this->section('What this opens');
+        foreach (\Ombabush\Fourthwall\Capability::cases() as $cap) {
+            $on = $fw->supports($cap);
+            $this->line(sprintf('  %s %s', $on ? '<fg=green>✓</>' : '<fg=gray>·</>', $cap->value));
+            $this->report['capabilities'][$cap->value] = $on;
         }
 
         $this->section('For your .env');

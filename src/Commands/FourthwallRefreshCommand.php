@@ -66,7 +66,18 @@ class FourthwallRefreshCommand extends Command
             }
         }
 
-        $this->line('  source: '.$fourthwall->source()->name());
+        if (! $this->option('product') && ! $this->option('collection')) {
+            try {
+                foreach ($fourthwall->refreshPlatform() as $what => $n) {
+                    $this->line(sprintf('  <fg=green>✓</> %-32s %d', $what, $n));
+                }
+            } catch (Throwable $e) {
+                $failed++;
+                $this->line('  <fg=red>✗</> platform: '.$e->getMessage());
+            }
+        }
+
+        $this->line('  source: '.$fourthwall->source()->name().'   can: '.implode(', ', array_map(fn ($c) => $c->value, $fourthwall->capabilities())));
 
         return $failed ? self::FAILURE : self::SUCCESS;
     }

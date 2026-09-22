@@ -99,6 +99,22 @@ return [
         'utm_medium' => env('FOURTHWALL_UTM_MEDIUM', 'website'),
     ]),
 
+    /*
+     * A cart on your own site — needs the storefront token. Set the path to
+     * mount its endpoints (`shop/cart` → POST /shop/cart/add, …) and point
+     * `page` at YOUR route that shows it (the package ships the component,
+     * not the page). Unset, every «buy» is a straight link into checkout.
+     *
+     * `metadata` is attached to every cart and comes back on the order —
+     * `['site' => 'sniff.ru']` — at most 10 keys, 512 bytes a value.
+     */
+    'cart' => [
+        'path' => env('FOURTHWALL_CART_PATH'),
+        'page' => env('FOURTHWALL_CART_PAGE'),
+        'middleware' => ['web'],
+        'metadata' => array_filter(['site' => env('FOURTHWALL_UTM_SOURCE')]),
+    ],
+
     'endpoints' => [
         'storefront' => env('FOURTHWALL_STOREFRONT_ENDPOINT', 'https://storefront-api.fourthwall.com/v1'),
         'platform' => env('FOURTHWALL_PLATFORM_ENDPOINT', 'https://api.fourthwall.com/open-api/v1.0'),

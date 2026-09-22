@@ -259,6 +259,127 @@ class Fourthwall
         ]) + $this->linkParams());
     }
 
+    /**
+     * Can this shop, with the credentials given, do this here?
+     */
+    public function supports(Capability $capability): bool
+    {
+        $name = $this->source->name();
+
+        return match ($capability) {
+            Capability::Catalogue => $this->configured(),
+            Capability::Collections => in_array($name, ['storefront', 'array'], true),
+            Capability::Stock => $name === 'storefront',
+            Capability::CheckoutLinks, Capability::Donations => (bool) $this->shopUrlOrNull(),
+            Capability::Carts => ! empty($this->config['storefront_token']) && (bool) $this->shopUrlOrNull(),
+            Capability::Promotions, Capability::Supporters => $this->platform()->configured(),
+            Capability::Webhooks => ! empty($this->config['webhook']['path']) && ! empty($this->config['webhook']['secret']),
+        };
+    }
+
+    /** @return Capability[] every capability that is on */
+    public function capabilities(): array
+    {
+        return array_values(array_filter(Capability::cases(), fn (Capability $c) => $this->supports($c)));
+    }
+
+    /**
+     * The visitor's cart, or null when carts are not available — no
+     * storefront token. Callers degrade to buyLink() then.
+     */
+    public function cart(): ?Cart
+    {
+        if (! $this->supports(Capability::Carts)) {
+            return null;
+        }
+
+        return $this->memo['__cart'] ??= new Cart(
+            token: (string) $this->config['storefront_token'],
+            shopUrl: (string) $this->shopUrl(),
+            session: app('session.store'),
+            endpoint: rtrim($this->config['endpoints']['storefront'] ?? 'https://storefront-api.fourthwall.com/v1', '/'),
+            currency: strtoupper($this->config['currency'] ?? 'USD'),
+            metadata: $this->config['cart']['metadata'] ?? [],
+            timeout: (int) ($this->config['timeout'] ?? 15),
+        );
+    }
+
+    /**
+     * The shop's promotions that are live now, reduced to what a banner can
+     * say: the code, a title, and the discount in words the page can print.
+     * Needs the Platform API user; cached like the catalogue.
+     *
+     * @return array<int, array{id: string, code: ?string, title: ?string, type: string, discount: array, automatic: bool}>
+     */
+    public function promotions(): array
+    {
+        if (! $this->supports(Capability::Promotions)) {
+            return [];
+        }
+
+        return $this->remember('platform.promotions', fn () => self::livePromotions($this->platform()->promotions()['results'] ?? [])) ?? [];
+    }
+
+    /**
+     * Recent completed donations for a thank-you wall: the name the donor
+     * typed, the amount and the message. NEVER the e-mail address, which
+     * Fourthwall includes and which this method drops before anything is
+     * cached. Needs the Platform API user.
+     *
+     * @return array<int, array{name: ?string, amount: ?Money, message: ?string, at: ?string}>
+     */
+    public function supporters(int $limit = 12): array
+    {
+        if (! $this->supports(Capability::Supporters)) {
+            return [];
+        }
+
+        $rows = $this->remember('platform.supporters', fn () => self::publicDonations($this->platform()->donations(0, 50)['results'] ?? [])) ?? [];
+
+        return array_map(fn (array $r) => ['amount' => Money::fromArray($r['amount'])] + $r, array_slice($rows, 0, $limit));
+    }
+
+    /** @internal public for tests */
+    public static function livePromotions(array $rows): array
+    {
+        return array_values(array_map(fn (array $p) => [
+            'id' => (string) ($p['id'] ?? ''),
+            'code' => $p['code'] ?? null,
+            'title' => $p['title'] ?? null,
+            'type' => (string) ($p['type'] ?? ''),
+            'automatic' => ($p['type'] ?? '') === 'SHOP_AUTO_APPLYING',
+            'discount' => array_filter([
+                'type' => $p['discount']['type'] ?? null,
+                'percentage' => $p['discount']['percentage'] ?? null,
+                'amount' => isset($p['discount']['money']['value'])
+                    ? Money::fromDecimal($p['discount']['money']['value'], $p['discount']['money']['currency'] ?? 'USD')->toArray()
+                    : null,
+                'free_shipping' => ($p['discount']['type'] ?? null) === 'FREE_SHIPPING' || ! empty($p['discount']['freeShipping']),
+            ], fn ($v) => $v !== null && $v !== false),
+        ], array_filter($rows, fn (array $p) => ($p['status'] ?? '') === 'Live'
+            // Membership promotions are for members only, and a public banner
+            // advertising one would promise a discount most visitors cannot use.
+            && str_starts_with((string) ($p['type'] ?? ''), 'SHOP_'))));
+    }
+
+    /** @internal public for tests */
+    public static function publicDonations(array $rows): array
+    {
+        return array_values(array_map(fn (array $d) => [
+            'name' => ($d['username'] ?? '') !== '' ? mb_substr((string) $d['username'], 0, 60) : null,
+            'amount' => isset($d['amounts']['total']['value'])
+                ? Money::fromDecimal($d['amounts']['total']['value'], $d['amounts']['total']['currency'] ?? 'USD')->toArray()
+                : null,
+            'message' => ($d['message'] ?? '') !== '' ? mb_substr((string) $d['message'], 0, 200) : null,
+            'at' => $d['createdAt'] ?? null,
+        ], array_filter($rows, fn (array $d) => ($d['status'] ?? '') === 'COMPLETED')));
+    }
+
+    private function shopUrlOrNull(): ?string
+    {
+        return ! empty($this->config['shop']) ? $this->shopUrl() : null;
+    }
+
     /** The Platform API — server-side only. */
     public function platform(): Platform
     {
@@ -316,6 +437,24 @@ class Fourthwall
         return ['what' => 'shop and collection list', 'count' => count($collections), 'before' => $before];
     }
 
+    /**
+     * Refetch what the Platform API user can see — promotions and supporters.
+     * Nothing when there is no API user.
+     *
+     * @return array<string, int>
+     */
+    public function refreshPlatform(): array
+    {
+        if (! $this->platform()->configured()) {
+            return [];
+        }
+
+        $this->put('platform.promotions', self::livePromotions($this->platform()->promotions()['results'] ?? []));
+        $this->put('platform.supporters', self::publicDonations($this->platform()->donations(0, 50)['results'] ?? []));
+
+        return ['promotions' => count($this->peek('platform.promotions')), 'supporters' => count($this->peek('platform.supporters'))];
+    }
+
     /** Drop one cached thing, or — with no argument — everything cached for this shop. */
     public function forget(?string $what = null): void
     {
@@ -342,7 +481,8 @@ class Fourthwall
             return $this->memo[$what];
         }
 
-        if ($this->source instanceof NullSource) {
+        // The Platform API does not need a catalogue source — only its user.
+        if ($this->source instanceof NullSource && ! str_starts_with($what, 'platform.')) {
             return $this->memo[$what] = null;
         }
 

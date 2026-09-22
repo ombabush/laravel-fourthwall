@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Ombabush\Fourthwall\Commands\FourthwallCheckCommand;
 use Ombabush\Fourthwall\Commands\FourthwallRefreshCommand;
+use Ombabush\Fourthwall\Http\CartController;
 use Ombabush\Fourthwall\Http\WebhookController;
 
 class FourthwallServiceProvider extends ServiceProvider
@@ -38,6 +39,20 @@ class FourthwallServiceProvider extends ServiceProvider
         // site by being installed is a package that surprises someone.
         if ($path = config('fourthwall.webhook.path')) {
             Route::post($path, WebhookController::class)->name('fourthwall.webhook');
+        }
+
+        // The cart needs the session and CSRF — the web group — and a
+        // storefront token; without the token the routes answer 404.
+        if ($path = config('fourthwall.cart.path')) {
+            Route::middleware(config('fourthwall.cart.middleware', ['web']))
+                ->prefix($path)->name('fourthwall.cart.')
+                ->group(function () {
+                    Route::get('/', [CartController::class, 'show'])->name('show');
+                    Route::post('add', [CartController::class, 'add'])->name('add');
+                    Route::post('change', [CartController::class, 'change'])->name('change');
+                    Route::post('remove', [CartController::class, 'remove'])->name('remove');
+                    Route::get('checkout', [CartController::class, 'checkout'])->name('checkout');
+                });
         }
 
         if ($this->app->runningInConsole()) {

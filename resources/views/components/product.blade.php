@@ -1,9 +1,9 @@
-{{-- A whole product: pictures, name, price, description, and a «buy» that is
-     a plain GET form — the variant picker's value IS the checkout parameter
-     (`products=variantId:1`), so it works with JavaScript switched off. --}}
+{{-- A whole product: pictures, name, price, description, and
+     <x-fourthwall::add-to-cart> — into the site's cart where there is one,
+     straight into checkout where there is not. Both are plain forms and work
+     with JavaScript switched off. --}}
 @props(['product', 'params' => [], 'width' => 900])
 @php($fw = app(\Ombabush\Fourthwall\Fourthwall::class))
-@php($buyable = $product->variants()->where('available', true))
 <article {{ $attributes->class(['fw-product', 'is-sold-out' => ! $product->available]) }}>
 	<div class="fw-product__images">
 		@foreach ($product->images as $i => $img)
@@ -25,29 +25,7 @@
 			</p>
 		@endif
 
-		@if ($product->isBundle() || $product->variants()->isEmpty())
-			<a class="fw-buy" href="{{ $fw->productLink($product, $params) }}" target="_blank" rel="noopener">{{ __('fourthwall::shop.view_in_shop') }}</a>
-		@elseif ($buyable->isEmpty())
-			<p class="fw-product__soldout">{{ __('fourthwall::shop.sold_out') }}</p>
-		@else
-			<form class="fw-product__form" method="get" action="{{ $product->origin() }}/cart/checkout" target="_blank">
-				<label class="fw-product__label">
-					<span>{{ __('fourthwall::shop.choose') }}</span>
-					<select name="products" required>
-						@foreach ($product->variants as $v)
-							<option value="{{ $v->id }}:1" @disabled(! $v->available)>
-								{{ $v->name }}@if ($product->hasPriceRange()) — {{ $v->price->format() }}@endif
-								@unless ($v->available) ({{ __('fourthwall::shop.sold_out') }})@endunless
-							</option>
-						@endforeach
-					</select>
-				</label>
-				@foreach ($fw->linkParams($params) + array_filter(['currency' => config('fourthwall.currency')]) as $k => $v)
-					<input type="hidden" name="{{ $k }}" value="{{ $v }}">
-				@endforeach
-				<button class="fw-buy" type="submit">{{ __('fourthwall::shop.buy') }}</button>
-			</form>
-		@endif
+		<x-fourthwall::add-to-cart :product="$product" :params="$params" class="fw-product__form" />
 
 		@if ($product->description)
 			<div class="fw-product__description">{!! $product->descriptionHtml() !!}</div>
