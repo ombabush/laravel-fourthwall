@@ -1,0 +1,64 @@
+{
+    "name": "ombabush/laravel-fourthwall",
+    "description": "Put a Fourthwall merch shop on a Laravel site: shelves, filtered product lists, one-product pages, banners and a donation form — linking out to Fourthwall's own checkout. Works from the shop's domain alone; a storefront token adds detail.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "ombabush"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0|^12.0",
+        "illuminate/http": "^11.0|^12.0",
+        "illuminate/cache": "^11.0|^12.0",
+        "illuminate/view": "^11.0|^12.0",
+        "illuminate/console": "^11.0|^12.0",
+        "ext-simplexml": "*"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0|^10.0",
+        "pestphp/pest": "^3.0"
+    },
+    "suggest": {
+        "ext-intl": "Prices formatted for the visitor's locale (19,93 $ in Russian); without it they read $19.93 everywhere."
+    },
+    "autoload": {
+        "psr-4": {
+            "Ombabush\\Fourthwall\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Ombabush\\Fourthwall\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Ombabush\\Fourthwall\\FourthwallServiceProvider"
+            ],
+            "aliases": {
+                "Fourthwall": "Ombabush\\Fourthwall\\Facades\\Fourthwall"
+            }
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "keywords": [
+        "laravel",
+        "fourthwall",
+        "merch",
+        "storefront",
+        "shop",
+        "headless-commerce",
+        "donations",
+        "blade"
+    ]
+}

@@ -1,0 +1,57 @@
+{
+  "_note": "Built from the Storefront API reference (docs.fourthwall.com, 2026-09-23), not recorded — no storefront token was available. Field names are Fourthwall's, verbatim.",
+  "results": [
+    {
+      "type": "PRODUCT",
+      "id": "618d0e5e-8d06-4410-b39b-6d556c45d11d",
+      "name": "Mosquito Scan, 1993 — Black Print T-Shirt",
+      "slug": "mosquito-scan-1993-black-print-t-shirt",
+      "description": "<p>Real mosquito. <a href=\"https://sniff.ru\" onclick=\"steal()\">Professional</a> AGFA scan, 1993.</p><script>alert(1)</script>",
+      "state": { "type": "AVAILABLE" },
+      "access": { "type": "PUBLIC" },
+      "images": [
+        { "id": "img1", "url": "https://imgproxy.fourthwall.dev/abc/rt:fill/w:1200/sm:1/enc/x.webp", "transformedUrl": "https://imgproxy.fourthwall.dev/abc/rt:fill/w:1200/sm:1/enc/x.webp", "width": 1200, "height": 1200 }
+      ],
+      "variants": [
+        { "id": "v-black-s", "name": "Black, S", "sku": "MS-B-S", "unitPrice": { "value": 19.93, "currency": "USD" }, "compareAtPrice": null,
+          "attributes": { "description": "Black, S", "color": { "name": "Black", "swatch": "#000000" }, "size": { "name": "S" } },
+          "stock": { "type": "UNLIMITED" }, "images": [] },
+        { "id": "v-black-3xl", "name": "Black, 3XL", "sku": "MS-B-3XL", "unitPrice": { "value": 23.93, "currency": "USD" }, "compareAtPrice": null,
+          "attributes": { "description": "Black, 3XL", "color": { "name": "Black", "swatch": "#000000" }, "size": { "name": "3XL" } },
+          "stock": { "type": "LIMITED", "inStock": 0 }, "images": [] },
+        { "id": "v-navy-m", "name": "Navy, M", "sku": "MS-N-M", "unitPrice": { "value": 19.93, "currency": "USD" }, "compareAtPrice": { "value": 25.00, "currency": "USD" },
+          "attributes": { "description": "Navy, M", "color": { "name": "Navy", "swatch": "#1f2a44" }, "size": { "name": "M" } },
+          "stock": { "type": "LIMITED", "inStock": 4 }, "images": [] }
+      ],
+      "createdAt": "2026-09-20T08:46:11Z", "updatedAt": "2026-09-22T15:14:16Z"
+    },
+    {
+      "type": "PRODUCT",
+      "id": "hidden-1",
+      "name": "A draft nobody should see",
+      "slug": "draft",
+      "description": "",
+      "state": { "type": "AVAILABLE" },
+      "access": { "type": "HIDDEN" },
+      "images": [],
+      "variants": [
+        { "id": "v-h", "name": "One size", "unitPrice": { "value": 5, "currency": "USD" }, "attributes": { "description": "One size" }, "stock": { "type": "UNLIMITED" }, "images": [] }
+      ]
+    },
+    {
+      "type": "BUNDLE",
+      "id": "bundle-1",
+      "name": "Both mosquitoes",
+      "slug": "both-mosquitoes",
+      "description": "",
+      "state": { "type": "SOLD_OUT" },
+      "access": { "type": "PUBLIC" },
+      "images": [],
+      "price": { "value": 35.86, "currency": "USD" },
+      "compareAtPrice": { "value": 39.93, "currency": "USD" },
+      "pricingStrategy": { "type": "DISCOUNT_BASED", "discountPercentage": 10 },
+      "offers": []
+    }
+  ],
+  "paging": { "pageNumber": 0, "pageSize": 50, "elementsTotal": 3, "totalPages": 1, "hasNextPage": false }
+}

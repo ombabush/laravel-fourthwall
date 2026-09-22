@@ -1,0 +1,28 @@
+<?php
+
+return [
+    'from' => 'from',
+    'sold_out' => 'Sold out',
+    'see_all' => 'See everything',
+    'view_in_shop' => 'View in the shop',
+    'choose' => 'Colour and size',
+    'buy' => 'Buy',
+    'amount' => 'Amount',
+    'other' => 'Other',
+    'your_name' => 'Your name',
+    'message' => 'Message',
+    'donate' => 'Donate',
+    'search' => 'Search',
+    'color' => 'Colour',
+    'size' => 'Size',
+    'price' => 'Price',
+    'sort' => 'Sort',
+    'sort_featured' => 'Featured',
+    'sort_price' => 'Price, low to high',
+    'sort_desc_price' => 'Price, high to low',
+    'sort_newest' => 'Newest',
+    'sort_name' => 'Name',
+    'in_stock' => 'In stock only',
+    'apply' => 'Show',
+    'reset' => 'Reset',
+];
