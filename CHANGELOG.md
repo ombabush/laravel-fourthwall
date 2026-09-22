@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — 2026-09-23
+
+- **Laravel 12 only.** Packagist now blocks every Laravel 11 release on open
+  security advisories, so 11 cannot be installed without switching that check
+  off. CI runs PHP 8.2, 8.3 and 8.4 on Laravel 12.
+
 ## 0.2.0 — 2026-09-23
 
 - **A cart on your own site.** `Fourthwall::cart()` holds a Storefront API cart
@@ -23,7 +29,7 @@
   `fourthwall:refresh` refreshes them too when the API user is set.
 - Colour swatches are accepted only as hex colours, because they are printed
   into a `style` attribute.
-- CI on PHP 8.2–8.4 × Laravel 11–12.
+- CI on PHP 8.2–8.4.
 
 ## 0.1.1 — 2026-09-23
 

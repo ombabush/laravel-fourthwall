@@ -10,15 +10,15 @@
     ],
     "require": {
         "php": "^8.2",
-        "illuminate/support": "^11.0|^12.0",
-        "illuminate/http": "^11.0|^12.0",
-        "illuminate/cache": "^11.0|^12.0",
-        "illuminate/view": "^11.0|^12.0",
-        "illuminate/console": "^11.0|^12.0",
+        "illuminate/support": "^12.0",
+        "illuminate/http": "^12.0",
+        "illuminate/cache": "^12.0",
+        "illuminate/view": "^12.0",
+        "illuminate/console": "^12.0",
         "ext-simplexml": "*"
     },
     "require-dev": {
-        "orchestra/testbench": "^9.0|^10.0",
+        "orchestra/testbench": "^10.0",
         "pestphp/pest": "^3.0"
     },
     "suggest": {

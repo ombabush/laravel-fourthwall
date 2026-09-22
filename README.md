@@ -43,7 +43,7 @@ FOURTHWALL_SHOP=https://shop.example.com
 That is enough. Every Fourthwall shop publishes its catalogue as JSON and as a
 Google Merchant Center feed with no key at all, and the package reads both.
 
-Requires PHP 8.2+ and Laravel 11 or 12. With `ext-intl`, prices are formatted
+Requires PHP 8.2+ and Laravel 12. With `ext-intl`, prices are formatted
 for the reader's locale (`19,93 $` in Russian). Without it they read `$19.93`
 everywhere.
 
