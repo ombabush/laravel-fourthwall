@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.2 — 2026-09-23
+
+- **A wrong token no longer empties the shop.** A storefront token must look
+  like one (`ptkn_…`), or it is ignored and the public feeds are read. A real
+  token that Fourthwall refuses (revoked, from another shop) now falls back to
+  the feeds too, and the failure is logged.
+- `fourthwall:check` no longer prints a value from the token variable that is
+  not a storefront token. That is usually a password on the wrong line, and
+  the command now says so and asks for it to be rotated.
+
 ## 0.2.1 — 2026-09-23
 
 - **Laravel 12 only.** Packagist now blocks every Laravel 11 release on open

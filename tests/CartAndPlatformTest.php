@@ -190,3 +190,31 @@ it('renders the live promotion, and nothing once it has ended', function () {
     fourthwall($cfg);
     expect(trim(Blade::render('<x-fourthwall::promo />')))->toBe('');
 });
+
+it('ignores, and never prints, a token that is not a storefront token', function () {
+    fakeFeeds();
+    $fw = fourthwall(['source' => 'auto', 'shop' => 'https://shop.test', 'storefront_token' => 'NotAToken-maybe-a-password']);
+
+    expect($fw->source()->name())->toBe('feed')
+        ->and($fw->supports(Capability::Carts))->toBeFalse()
+        ->and($fw->products()->count())->toBe(3);
+
+    $this->artisan('fourthwall:check', ['--shop' => 'https://shop.test', '--token' => 'NotAToken-maybe-a-password', '--no-interaction' => true])
+        ->doesntExpectOutputToContain('NotAToken-maybe-a-password')
+        ->expectsOutputToContain('NOT a storefront token')
+        ->assertFailed();
+});
+
+it('falls back to the public feeds when the Storefront API refuses the token', function () {
+    Http::fake([
+        'storefront.test/*' => Http::response(['code' => 'NotAuthorizedError'], 401),
+        'shop.test/collections/all.json' => Http::response(fixture('feed-collection-all.json')),
+        'shop.test/collections/all/2.json' => Http::response(['products' => []]),
+        'shop.test/.well-known/merchant-center/rss.xml' => Http::response(fixture('feed-merchant-center.xml')),
+    ]);
+
+    $fw = fourthwall(['source' => 'auto', 'shop' => 'https://shop.test', 'storefront_token' => 'ptkn_revoked',
+        'endpoints' => ['storefront' => 'https://storefront.test/v1']]);
+
+    expect($fw->products()->count())->toBe(3);
+});

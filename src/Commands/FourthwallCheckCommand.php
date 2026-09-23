@@ -65,6 +65,18 @@ class FourthwallCheckCommand extends Command
             $this->source(new FeedSource($c['shop'], $timeout), 'feed');
         }
 
+        // Something is in the token variable but it is not a storefront token
+        // — often a password pasted into the wrong line. Neither used nor
+        // printed; said loudly instead.
+        if ($c['token'] && ! Fourthwall::looksLikeToken($c['token'])) {
+            $this->section('Storefront API  (public token)');
+            $this->line('  <fg=red>✗ The value given is NOT a storefront token</> — those start with ptkn_. It was not used and is not printed.');
+            $this->line('    If it is a password or another secret, it belongs in its own variable; if it was shared anywhere, rotate it.');
+            $this->report['errors'][] = 'storefront token: not a ptkn_ token';
+            $c['token'] = null;
+            $c['bad_token'] = true;
+        }
+
         if ($c['token']) {
             $this->section('Storefront API  (public token)');
             $this->source(new StorefrontSource($c['token'], rtrim(config('fourthwall.endpoints.storefront'), '/'), $currency, $c['shop'], $timeout), 'storefront');
@@ -84,7 +96,7 @@ class FourthwallCheckCommand extends Command
         $this->section('For your .env');
         $env = array_filter([
             'FOURTHWALL_SHOP' => $c['shop'],
-            'FOURTHWALL_STOREFRONT_TOKEN' => $c['token'],
+            'FOURTHWALL_STOREFRONT_TOKEN' => $c['token'] ?? (! empty($c['bad_token']) ? '# NOT a ptkn_ token — replace it' : null),
             'FOURTHWALL_API_USERNAME' => $c['username'] ? '# SECRET — your API user' : null,
             'FOURTHWALL_API_PASSWORD' => $c['password'] ? '# SECRET — never commit' : null,
         ]);

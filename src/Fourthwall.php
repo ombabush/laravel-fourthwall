@@ -11,6 +11,7 @@ use Ombabush\Fourthwall\Data\Shop;
 use Ombabush\Fourthwall\Data\ShopCollection;
 use Ombabush\Fourthwall\Exceptions\FourthwallException;
 use Ombabush\Fourthwall\Sources\ArraySource;
+use Ombabush\Fourthwall\Sources\FallbackSource;
 use Ombabush\Fourthwall\Sources\FeedSource;
 use Ombabush\Fourthwall\Sources\NullSource;
 use Ombabush\Fourthwall\Sources\Source;
@@ -61,22 +62,28 @@ class Fourthwall
 
         if ($source === 'auto') {
             $source = match (true) {
-                ! empty($config['storefront_token']) => 'storefront',
+                self::looksLikeToken($config['storefront_token'] ?? null) => 'storefront',
                 ! empty($config['shop']) => 'feed',
                 ! empty($config['catalogue']['products']) => 'array',
                 default => 'null',
             };
         }
 
+        $storefront = fn () => new StorefrontSource(
+            token: (string) ($config['storefront_token'] ?? throw FourthwallException::notConfigured('FOURTHWALL_STOREFRONT_TOKEN')),
+            endpoint: rtrim($config['endpoints']['storefront'] ?? 'https://storefront-api.fourthwall.com/v1', '/'),
+            currency: strtoupper($config['currency'] ?? 'USD'),
+            shopUrl: $config['shop'] ?? null,
+            timeout: $timeout,
+            maxPages: $pages,
+        );
+
         return match ($source) {
-            'storefront' => new StorefrontSource(
-                token: (string) ($config['storefront_token'] ?? throw FourthwallException::notConfigured('FOURTHWALL_STOREFRONT_TOKEN')),
-                endpoint: rtrim($config['endpoints']['storefront'] ?? 'https://storefront-api.fourthwall.com/v1', '/'),
-                currency: strtoupper($config['currency'] ?? 'USD'),
-                shopUrl: $config['shop'] ?? null,
-                timeout: $timeout,
-                maxPages: $pages,
-            ),
+            // With the shop's address known, a failing Storefront API falls
+            // back to the public feeds rather than emptying every shelf.
+            'storefront' => ! empty($config['shop'])
+                ? new FallbackSource($storefront(), new FeedSource((string) $config['shop'], $timeout, $pages))
+                : $storefront(),
             'feed' => new FeedSource(
                 shopUrl: (string) ($config['shop'] ?? throw FourthwallException::notConfigured('FOURTHWALL_SHOP')),
                 timeout: $timeout,
@@ -86,6 +93,16 @@ class Fourthwall
             'null' => new NullSource,
             default => throw new FourthwallException("Unknown Fourthwall source «{$source}»."),
         };
+    }
+
+    /**
+     * Storefront tokens start `ptkn_`. Anything else in that variable is a
+     * mistake — often a password pasted into the wrong line — and is neither
+     * used nor printed.
+     */
+    public static function looksLikeToken(?string $token): bool
+    {
+        return is_string($token) && str_starts_with(trim($token), 'ptkn_');
     }
 
     /**
@@ -271,7 +288,7 @@ class Fourthwall
             Capability::Collections => in_array($name, ['storefront', 'array'], true),
             Capability::Stock => $name === 'storefront',
             Capability::CheckoutLinks, Capability::Donations => (bool) $this->shopUrlOrNull(),
-            Capability::Carts => ! empty($this->config['storefront_token']) && (bool) $this->shopUrlOrNull(),
+            Capability::Carts => self::looksLikeToken($this->config['storefront_token'] ?? null) && (bool) $this->shopUrlOrNull(),
             Capability::Promotions, Capability::Supporters => $this->platform()->configured(),
             Capability::Webhooks => ! empty($this->config['webhook']['path']) && ! empty($this->config['webhook']['secret']),
         };
