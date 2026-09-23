@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.5 — 2026-09-23
+
+- **The cart survives a look at checkout.** Handing the cart to checkout no
+  longer lets go of it here. A buyer who comes back without paying still has
+  it, and it is the same cart the shop shows on its own domain. The id is
+  dropped only when Fourthwall answers 404/410 for it.
+
 ## 0.2.4 — 2026-09-23
 
 - Variants are named by their attributes («White, XS»), not by the Storefront

@@ -222,8 +222,9 @@ it.
 anything that tries to share them breaks in Safari. It works the other way,
 though. Seen on a live shop on 2026-09-23: once the buyer presses «checkout»,
 the cart made here *becomes* the shop's cart and is still in `{shop}/cart`
-if they wander off. The id is dropped here at that moment, so our icon goes
-back to zero while the shop carries on.
+if they wander off. The id is kept here too, so a buyer who looks at checkout
+and comes back unpaid finds the same cart on both sites. It is let go when
+Fourthwall says the cart is gone.
 
 ## Promotions and supporters
 

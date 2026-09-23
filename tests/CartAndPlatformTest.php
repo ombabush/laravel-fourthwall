@@ -73,7 +73,7 @@ it('counts from the session — a header icon never makes a request', function (
         ->and(Blade::render('<x-fourthwall::cart-icon href="/cart" />'))->toContain('fw-cart-icon__count">3<');
 });
 
-it('hands the cart to checkout by id, then lets it go', function () {
+it('hands the cart to checkout by id, and still has it when the buyer comes back unpaid', function () {
     $fw = withCart(['link_params' => ['utm_source' => 'sniff.ru']]);
     Http::fake(['storefront.test/v1/carts?*' => Http::response(cartPayload('cart-1', [['v1', 1]]))]);
     $cart = $fw->cart();
@@ -81,8 +81,26 @@ it('hands the cart to checkout by id, then lets it go', function () {
 
     expect($cart->checkoutUrl(['utm_source' => 'sniff.ru'], 'SNIFF15'))
         ->toBe('https://shop.test/cart/checkout?cartId=cart-1&currency=USD&coupon=SNIFF15&utm_source=sniff.ru')
-        ->and($cart->id())->toBeNull()
-        ->and($cart->count())->toBe(0);
+        ->and($cart->id())->toBe('cart-1')
+        ->and($cart->count())->toBe(1)
+        ->and($cart->checkoutAt())->not->toBeNull();
+});
+
+it('lets the cart go only when Fourthwall says it is gone', function () {
+    $fw = withCart();
+    Http::fake([
+        'storefront.test/v1/carts?*' => Http::response(cartPayload('cart-1', [['v1', 1]])),
+        'storefront.test/v1/carts/cart-1?*' => Http::response(['code' => 'CART_NOT_FOUND'], 404),
+    ]);
+    $cart = $fw->cart();
+    $cart->add('v1');
+    $cart->checkoutUrl();
+
+    $fresh = new Cart('ptkn_test', 'https://shop.test', app('session.store'), 'https://storefront.test/v1');
+
+    expect($fresh->get()->isEmpty())->toBeTrue()
+        ->and($fresh->id())->toBeNull()
+        ->and($fresh->count())->toBe(0);
 });
 
 it('keeps cart metadata inside Fourthwall’s limits', function () {

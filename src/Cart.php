@@ -19,7 +19,9 @@ use Ombabush\Fourthwall\Exceptions\FourthwallException;
  *
  * The item COUNT is kept in the session too, updated on every change, so a
  * cart icon in the site's header costs no request on any page. Only the cart
- * page itself asks Fourthwall what is in it.
+ * page itself asks Fourthwall what is in it — and that is also where a count
+ * changed on the shop's own domain (after checkout the cart is shared) is
+ * brought back in step.
  *
  * Metadata given when the cart is created — up to 10 keys — comes back on the
  * order as `metadata`, next to the UTM tags: which page, gallery or banner
@@ -131,14 +133,18 @@ class Cart
     /** Let go of the cart here. Fourthwall expires it on its own. */
     public function forget(): void
     {
-        $this->session->forget([$this->key('id'), $this->key('count')]);
+        $this->session->forget([$this->key('id'), $this->key('count'), $this->key('checkout_at')]);
         $this->loaded = null;
     }
 
     /**
-     * Into Fourthwall's checkout with this cart. The cart id is forgotten
-     * here — once it is checked out it is no longer ours to add to — and the
-     * visitor gets a fresh one next time.
+     * Into Fourthwall's checkout with this cart.
+     *
+     * The id is KEPT. A buyer who looks at checkout and comes back without
+     * paying still has their cart here — and it is the same cart the shop
+     * shows on its own domain, because the hand-over makes it the shop's.
+     * It is let go only when Fourthwall says it is gone (see get() and add():
+     * a 404/410 on a held id starts over).
      */
     public function checkoutUrl(array $params = [], ?string $coupon = null): ?string
     {
@@ -146,15 +152,19 @@ class Cart
             return null;
         }
 
-        $url = rtrim($this->shopUrl, '/').'/cart/checkout?'.http_build_query(array_filter([
+        $this->session->put($this->key('checkout_at'), time());
+
+        return rtrim($this->shopUrl, '/').'/cart/checkout?'.http_build_query(array_filter([
             'cartId' => $id,
             'currency' => $this->currency,
             'coupon' => $coupon,
         ]) + $params);
+    }
 
-        $this->forget();
-
-        return $url;
+    /** When this visitor last went to checkout with the held cart, if ever. */
+    public function checkoutAt(): ?int
+    {
+        return $this->session->get($this->key('checkout_at'));
     }
 
     /**
