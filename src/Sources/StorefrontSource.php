@@ -46,7 +46,8 @@ class StorefrontSource implements Source
             return $this->shop;
         }
 
-        $s = $this->get('/shop');
+        $this->assertSameShop();
+        $s = $this->shopPayload();
         $domain = $s['publicDomain'] ?? null ?: (($s['domain'] ?? null) ? $s['domain'].'.fourthwall.com' : null);
 
         return $this->shop = new Shop(
@@ -59,6 +60,8 @@ class StorefrontSource implements Source
 
     public function collections(): array
     {
+        $this->assertSameShop();
+
         return array_map(fn (array $c) => new ShopCollection(
             slug: (string) $c['slug'],
             name: (string) ($c['name'] ?? $c['slug']),
@@ -69,6 +72,8 @@ class StorefrontSource implements Source
 
     public function products(string $collection): array
     {
+        $this->assertSameShop();
+
         $rows = $this->paged('/collections/'.rawurlencode($collection).'/products', ['currency' => $this->currency]);
 
         return array_values(array_filter(array_map(
@@ -78,6 +83,8 @@ class StorefrontSource implements Source
 
     public function product(string $slug): ?Product
     {
+        $this->assertSameShop();
+
         try {
             return $this->map($this->get('/products/'.rawurlencode($slug), ['currency' => $this->currency]));
         } catch (FourthwallException $e) {
@@ -87,6 +94,41 @@ class StorefrontSource implements Source
 
             throw $e;
         }
+    }
+
+    /**
+     * A storefront token belongs to ONE shop, and it is easy to create it in
+     * the wrong one — Fourthwall's admin switches between a user's shops in a
+     * corner. A token from another shop would put that shop's products on
+     * this page with links into this shop's checkout, where they do not
+     * exist. So when the site names its shop, the token's shop must be it.
+     */
+    public function assertSameShop(): void
+    {
+        if (! $this->shopUrl) {
+            return;
+        }
+
+        $want = strtolower((string) parse_url(str_contains($this->shopUrl, '://') ? $this->shopUrl : 'https://'.$this->shopUrl, PHP_URL_HOST));
+        $s = $this->shopPayload();
+        $hosts = array_filter([
+            strtolower((string) ($s['publicDomain'] ?? '')),
+            ! empty($s['domain']) ? strtolower($s['domain']).'.fourthwall.com' : null,
+        ]);
+
+        if (! in_array($want, $hosts, true)) {
+            throw new FourthwallException(sprintf(
+                'The storefront token belongs to «%s» (%s), not to %s. Create the token in that shop\'s admin.',
+                $s['name'] ?? '?', implode(', ', $hosts) ?: '?', $want
+            ));
+        }
+    }
+
+    private ?array $shopPayload = null;
+
+    private function shopPayload(): array
+    {
+        return $this->shopPayload ??= $this->get('/shop');
     }
 
     /**

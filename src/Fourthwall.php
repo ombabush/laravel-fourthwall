@@ -288,10 +288,43 @@ class Fourthwall
             Capability::Collections => in_array($name, ['storefront', 'array'], true),
             Capability::Stock => $name === 'storefront',
             Capability::CheckoutLinks, Capability::Donations => (bool) $this->shopUrlOrNull(),
-            Capability::Carts => self::looksLikeToken($this->config['storefront_token'] ?? null) && (bool) $this->shopUrlOrNull(),
+            Capability::Carts => self::looksLikeToken($this->config['storefront_token'] ?? null) && (bool) $this->shopUrlOrNull()
+                && $this->tokenIsThisShops(),
             Capability::Promotions, Capability::Supporters => $this->platform()->configured(),
             Capability::Webhooks => ! empty($this->config['webhook']['path']) && ! empty($this->config['webhook']['secret']),
         };
+    }
+
+    /**
+     * Does the storefront token belong to the configured shop? Asked of
+     * Fourthwall once and cached like the catalogue, so a page does not pay
+     * for it. A token from another shop never switches the cart on.
+     */
+    public function tokenIsThisShops(): bool
+    {
+        $token = $this->config['storefront_token'] ?? null;
+
+        if (! self::looksLikeToken($token) || empty($this->config['shop'])) {
+            return false;
+        }
+
+        return (bool) $this->remember('token_matches', function () use ($token) {
+            try {
+                (new StorefrontSource((string) $token, rtrim($this->config['endpoints']['storefront'] ?? 'https://storefront-api.fourthwall.com/v1', '/'),
+                    'USD', (string) $this->config['shop'], (int) ($this->config['timeout'] ?? 15)))->assertSameShop();
+
+                return true;
+            } catch (FourthwallException $e) {
+                // A refusal is an answer worth caching; a network failure is not.
+                if ($e->status === null || in_array($e->status, [401, 403], true)) {
+                    Log::warning('[fourthwall] '.$e->getMessage());
+
+                    return false;
+                }
+
+                throw $e;
+            }
+        });
     }
 
     /** @return Capability[] every capability that is on */

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.3 — 2026-09-23
+
+- **A token from another shop is refused.** A storefront token belongs to one
+  shop, and Fourthwall's admin makes it easy to create one in the wrong shop.
+  When `FOURTHWALL_SHOP` is set, the token's shop (`publicDomain` or
+  `<domain>.fourthwall.com`) must be that shop. Otherwise the Storefront API
+  is not used, the public feeds are read instead, the cart stays off, and
+  `fourthwall:check` names the shop the token belongs to. The check is made
+  once and cached.
+
 ## 0.2.2 — 2026-09-23
 
 - **A wrong token no longer empties the shop.** A storefront token must look

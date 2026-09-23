@@ -26,13 +26,17 @@ function cartPayload(string $id, array $items): array
 
 function withCart(array $extra = []): Fourthwall
 {
+    // The token must be this shop's before a cart is switched on.
+    Http::fake(['storefront.test/v1/shop*' => Http::response(['name' => 'Test Shop', 'domain' => 'test-shop', 'publicDomain' => 'shop.test'])]);
+
     return fourthwall(['source' => 'array', 'shop' => 'https://shop.test', 'storefront_token' => 'ptkn_test',
         'endpoints' => ['storefront' => 'https://storefront.test/v1'], 'cart' => ['metadata' => ['site' => 'sniff.ru']]] + $extra);
 }
 
 it('creates the cart on first add, with our metadata, and keeps only its id and count', function () {
+    $fw = withCart();
     Http::fake(['storefront.test/v1/carts?*' => Http::response(cartPayload('cart-1', [['v1', 2]]))]);
-    $cart = withCart()->cart();
+    $cart = $fw->cart();
 
     $data = $cart->add('v1', 2, metadata: ['source_page' => '/gallery/kiev']);
 
@@ -41,17 +45,18 @@ it('creates the cart on first add, with our metadata, and keeps only its id and 
         ->and($data->subtotal()->minor)->toBe(3986)
         ->and($data->lines[0]->url)->toBe('https://shop.test/products/mosquito');
 
-    Http::assertSent(fn (HttpRequest $r) => str_contains($r->url(), 'storefront_token=ptkn_test')
+    Http::assertSent(fn (HttpRequest $r) => $r->method() === 'POST' && str_contains($r->url(), 'storefront_token=ptkn_test')
         && $r['items'][0] === ['variantId' => 'v1', 'quantity' => 2]
         && $r['metadata'] === ['site' => 'sniff.ru', 'source_page' => '/gallery/kiev']);
 });
 
 it('adds to the cart it already holds, and starts a new one when that has expired', function () {
+    $fw = withCart();
     Http::fake([
         'storefront.test/v1/carts/cart-1/add*' => Http::response(['code' => 'CART_NOT_FOUND'], 404),
         'storefront.test/v1/carts?*' => Http::response(cartPayload('cart-2', [['v2', 1]])),
     ]);
-    $cart = withCart()->cart();
+    $cart = $fw->cart();
     (fn () => $this->session->put($this->key('id'), 'cart-1'))->call($cart);
 
     $cart->add('v2');
@@ -60,8 +65,8 @@ it('adds to the cart it already holds, and starts a new one when that has expire
 });
 
 it('counts from the session — a header icon never makes a request', function () {
+    $cart = withCart()->cart();   // the one-time, cached check that the token is this shop's
     Http::fake(['*' => fn () => throw new RuntimeException('the icon reached the network')]);
-    $cart = withCart()->cart();
     (fn () => $this->session->put($this->key('count'), 3))->call($cart);
 
     expect($cart->count())->toBe(3)
@@ -69,8 +74,9 @@ it('counts from the session — a header icon never makes a request', function (
 });
 
 it('hands the cart to checkout by id, then lets it go', function () {
+    $fw = withCart(['link_params' => ['utm_source' => 'sniff.ru']]);
     Http::fake(['storefront.test/v1/carts?*' => Http::response(cartPayload('cart-1', [['v1', 1]]))]);
-    $cart = withCart(['link_params' => ['utm_source' => 'sniff.ru']])->cart();
+    $cart = $fw->cart();
     $cart->add('v1');
 
     expect($cart->checkoutUrl(['utm_source' => 'sniff.ru'], 'SNIFF15'))
@@ -94,8 +100,8 @@ it('keeps cart metadata inside Fourthwall’s limits', function () {
 });
 
 it('mounts the cart routes and adds by a plain form post', function () {
-    Http::fake(['storefront.test/v1/carts?*' => Http::response(cartPayload('cart-1', [['v1', 1]]))]);
     withCart();
+    Http::fake(['storefront.test/v1/carts?*' => Http::response(cartPayload('cart-1', [['v1', 1]]))]);
 
     $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class)
         ->from('/shop')->post('/shop/cart/add', ['variant' => 'v1'])
@@ -131,6 +137,7 @@ it('has no cart without a storefront token, and «add to cart» becomes «buy»'
  */
 
 it('says what each set of credentials opens', function () {
+    Http::fake(['storefront-api.fourthwall.com/v1/shop*' => Http::response(['name' => 'Test Shop', 'domain' => 'test-shop', 'publicDomain' => 'shop.test'])]);
     $feed = fourthwall(['source' => 'auto', 'shop' => 'https://shop.test', 'storefront_token' => null, 'api_username' => null, 'api_password' => null]);
     $all = fourthwall(['storefront_token' => 'ptkn_x', 'api_username' => 'u', 'api_password' => 'p', 'webhook' => ['path' => 'wh', 'secret' => 's']]);
 
@@ -217,4 +224,34 @@ it('falls back to the public feeds when the Storefront API refuses the token', f
         'endpoints' => ['storefront' => 'https://storefront.test/v1']]);
 
     expect($fw->products()->count())->toBe(3);
+});
+
+it('refuses a token from another shop, keeps the feeds, and keeps the cart off', function () {
+    Http::fake([
+        'storefront.test/v1/shop*' => Http::response(['id' => 'sh_2', 'name' => '44100Hz', 'domain' => '44100hz-shop', 'publicDomain' => 'shop.44100.test']),
+        'storefront.test/*' => Http::response(['results' => [['id' => 'x', 'slug' => 'beanie', 'name' => 'Beanie', 'access' => ['type' => 'PUBLIC'], 'variants' => []]], 'paging' => ['hasNextPage' => false]]),
+        'shop.test/collections/all.json' => Http::response(fixture('feed-collection-all.json')),
+        'shop.test/collections/all/2.json' => Http::response(['products' => []]),
+        'shop.test/.well-known/merchant-center/rss.xml' => Http::response(fixture('feed-merchant-center.xml')),
+    ]);
+
+    $fw = fourthwall(['source' => 'auto', 'shop' => 'https://shop.test/', 'storefront_token' => 'ptkn_other_shop',
+        'endpoints' => ['storefront' => 'https://storefront.test/v1']]);
+
+    expect($fw->products()->get()->pluck('slug'))->not->toContain('beanie')
+        ->and($fw->products()->count())->toBe(3)
+        ->and($fw->tokenIsThisShops())->toBeFalse()
+        ->and($fw->supports(Capability::Carts))->toBeFalse();
+
+    $this->artisan('fourthwall:check', ['--shop' => 'https://shop.test', '--token' => 'ptkn_other_shop', '--no-interaction' => true])
+        ->expectsOutputToContain('belongs to «44100Hz»');
+});
+
+it('accepts a token from this shop, by its public domain', function () {
+    Http::fake(['storefront.test/v1/shop*' => Http::response(['name' => 'Test Shop', 'domain' => 'test-shop', 'publicDomain' => 'shop.test'])]);
+
+    $fw = fourthwall(['source' => 'auto', 'shop' => 'https://shop.test', 'storefront_token' => 'ptkn_ours',
+        'endpoints' => ['storefront' => 'https://storefront.test/v1']]);
+
+    expect($fw->tokenIsThisShops())->toBeTrue()->and($fw->supports(Capability::Carts))->toBeTrue();
 });
