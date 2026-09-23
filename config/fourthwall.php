@@ -115,6 +115,14 @@ return [
         'metadata' => array_filter(['site' => env('FOURTHWALL_UTM_SOURCE')]),
     ],
 
+    /*
+     * Names and descriptions in other languages, by locale and product slug.
+     * Fourthwall has no translations of its own; see Fourthwall::localize().
+     */
+    'translations' => [
+        // 'ru' => ['some-slug' => ['name' => '…', 'description' => '…']],
+    ],
+
     'endpoints' => [
         'storefront' => env('FOURTHWALL_STOREFRONT_ENDPOINT', 'https://storefront-api.fourthwall.com/v1'),
         'platform' => env('FOURTHWALL_PLATFORM_ENDPOINT', 'https://api.fourthwall.com/open-api/v1.0'),

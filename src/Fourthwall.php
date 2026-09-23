@@ -182,7 +182,7 @@ class Fourthwall
     public function productsIn(string $collection): array
     {
         return array_map(
-            fn (array $a) => Product::fromArray($a),
+            fn (array $a) => $this->localize(Product::fromArray($a)),
             $this->remember('collection.'.$collection, fn () => array_map(
                 fn (Product $p) => $p->toArray(), $this->source->products($collection)
             )) ?? []
@@ -200,7 +200,31 @@ class Fourthwall
 
         $a = $this->remember('product.'.$slug, fn () => $this->source->product($slug)?->toArray());
 
-        return $a ? Product::fromArray($a) : null;
+        return $a ? $this->localize(Product::fromArray($a)) : null;
+    }
+
+    /**
+     * A product in the reader's language, where the site has written one.
+     *
+     * Fourthwall has no translations: a shop is in one language, and its
+     * names and descriptions come back in it. A site in two languages keeps
+     * its own, by slug, in `fourthwall.translations`:
+     *
+     *   'translations' => ['ru' => ['mosquito-scan-1993-black-print-t-shirt' => [
+     *       'name' => 'Комар, скан 1993 — футболка, чёрный принт',
+     *       'description' => 'Настоящий комар. …',
+     *   ]]]
+     *
+     * Applied on every read, never cached — so the cache holds the shop's own
+     * words and a locale switch needs no refresh. Anything not written falls
+     * through to the shop's text.
+     */
+    public function localize(Product $product, ?string $locale = null): Product
+    {
+        $locale ??= function_exists('app') && app()->bound('translator') ? app()->getLocale() : null;
+        $t = $locale ? ($this->config['translations'][$locale][$product->slug] ?? null) : null;
+
+        return $t ? $product->renamed($t['name'] ?? null, $t['description'] ?? null) : $product;
     }
 
     /**

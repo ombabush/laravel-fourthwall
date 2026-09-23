@@ -160,6 +160,16 @@ final class Product implements JsonSerializable
         return ($p['scheme'] ?? 'https').'://'.($p['host'] ?? '');
     }
 
+    /** The same product under another name and description — see Fourthwall::localize(). */
+    public function renamed(?string $name, ?string $description): self
+    {
+        $a = $this->toArray();
+        $a['name'] = $name ?? $this->name;
+        $a['description'] = $description ?? $this->description;
+
+        return self::fromArray($a);
+    }
+
     public function withCollections(array $collections): self
     {
         $a = $this->toArray();

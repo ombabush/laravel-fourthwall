@@ -234,3 +234,26 @@ it('never resizes a signed imgproxy URL, which would break it', function () {
     expect($signed->width(900))->toBe($signed->url)
         ->and($open->width(900))->toBe('https://imgproxy.example.com/insecure/rt:fill/w:900/plain/x.jpg');
 });
+
+it('speaks the reader’s language where the site has written it, and the shop’s elsewhere', function () {
+    fakeFeeds();
+    $fw = fourthwall(['shop' => 'https://shop.test', 'storefront_token' => null, 'translations' => ['ru' => [
+        'mosquito-scan-1993-black-print-t-shirt' => ['name' => 'Комар, 1993 — футболка', 'description' => 'Настоящий комар.'],
+    ]]]);
+
+    app()->setLocale('ru');
+    $ru = $fw->product('mosquito-scan-1993-black-print-t-shirt');
+    $untranslated = $fw->product('archive-logo-1999-t-shirt');
+
+    app()->setLocale('en');
+    $en = $fw->product('mosquito-scan-1993-black-print-t-shirt');
+
+    expect($ru->name)->toBe('Комар, 1993 — футболка')
+        ->and($ru->description)->toBe('Настоящий комар.')
+        ->and($ru->price->minor)->toBe(1993)
+        ->and($untranslated->name)->toBe('Archive Logo, 1999 — T-Shirt')
+        ->and($en->name)->toBe('Mosquito Scan, 1993 — Black Print T-Shirt')
+        ->and($fw->products()->search('комар')->count())->toBe(0);   // search runs on what the reader sees…
+    app()->setLocale('ru');
+    expect($fw->products()->search('комар')->count())->toBe(1);    // …in their language
+});

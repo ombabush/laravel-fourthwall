@@ -264,6 +264,29 @@ link, and without promotions, `promo` renders nothing. One template works at
 every level. `fourthwall:check` prints the table for whatever credentials it
 is given.
 
+## Other languages
+
+A Fourthwall shop is in one language: names and descriptions come back in it,
+and `/ru` on the shop is a 404. A site in two languages writes its own, by
+locale and slug. Anything left unwritten falls through to the shop's text:
+
+```php
+// config/fourthwall.php
+'translations' => [
+    'ru' => [
+        'mosquito-scan-1993-black-print-t-shirt' => [
+            'name' => 'Комар, скан 1993 — футболка, чёрный принт',
+            'description' => '<p>Настоящий комар. …</p>',
+        ],
+    ],
+],
+```
+
+Translations apply on every read for `app()->getLocale()` and are never
+cached, so switching the language needs no refresh. Search runs on the words
+the reader sees. Checkout stays in the shop's language, because it is
+Fourthwall's page.
+
 ## Freshness
 
 ```env

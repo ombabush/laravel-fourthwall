@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — 2026-09-23
+
+- **Other languages.** `fourthwall.translations[locale][slug]` gives a
+  product a name and description in the reader's language. Fourthwall has
+  none of its own. They apply on read and are never cached, and search uses
+  them.
+
 ## 0.2.5 — 2026-09-23
 
 - **The cart survives a look at checkout.** Handing the cart to checkout no
