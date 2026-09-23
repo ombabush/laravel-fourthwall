@@ -81,6 +81,7 @@ it('maps stock, sale prices, swatches and bundles', function () {
 
     expect($shirt->variant('v-black-3xl')->available)->toBeFalse()
         ->and($shirt->variant('v-navy-m')->stock)->toBe(4)
+        ->and($shirt->variant('v-black-s')->name)->toBe('Black, S')   // not the product name again
         ->and($shirt->variant('v-navy-m')->onSale())->toBeTrue()
         ->and($shirt->swatches())->toBe(['Black' => '#000000', 'Navy' => '#1f2a44'])
         ->and($shirt->url)->toBe('https://shop.test/products/mosquito-scan-1993-black-print-t-shirt')

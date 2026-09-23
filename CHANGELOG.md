@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.4 — 2026-09-23
+
+- Variants are named by their attributes («White, XS»), not by the Storefront
+  API's `name`, which repeats the whole product name in front.
+- Verified on a live shop: a cart created here and handed to checkout becomes
+  the shop's own cart. It is there on `{shop}/cart` afterwards.
+
 ## 0.2.3 — 2026-09-23
 
 - **A token from another shop is refused.** A storefront token belongs to one

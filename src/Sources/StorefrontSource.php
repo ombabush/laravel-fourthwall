@@ -193,7 +193,9 @@ class StorefrontSource implements Source
 
         return new Variant(
             id: (string) $v['id'],
-            name: (string) ($v['name'] ?? $v['attributes']['description'] ?? ''),
+            // `attributes.description` is «White, XS»; `name` repeats the whole
+            // product name in front of it, which a variant picker does not need.
+            name: (string) ($v['attributes']['description'] ?? null ?: $v['name'] ?? ''),
             price: Money::fromDecimal($v['unitPrice']['value'] ?? 0, $v['unitPrice']['currency'] ?? $this->currency),
             compareAt: isset($v['compareAtPrice']['value'])
                 ? Money::fromDecimal($v['compareAtPrice']['value'], $v['compareAtPrice']['currency'] ?? $this->currency)

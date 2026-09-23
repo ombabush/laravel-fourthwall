@@ -31,7 +31,7 @@ final class CartLine implements JsonSerializable
 
         return new self(
             variantId: (string) ($v['id'] ?? ''),
-            variantName: (string) ($v['name'] ?? $v['attributes']['description'] ?? ''),
+            variantName: (string) ($v['attributes']['description'] ?? null ?: $v['name'] ?? ''),
             quantity: (int) ($i['quantity'] ?? 0),
             unitPrice: Money::fromDecimal($v['unitPrice']['value'] ?? 0, $v['unitPrice']['currency'] ?? 'USD'),
             productSlug: $slug,

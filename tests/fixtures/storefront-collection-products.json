@@ -13,7 +13,7 @@
         { "id": "img1", "url": "https://imgproxy.fourthwall.dev/abc/rt:fill/w:1200/sm:1/enc/x.webp", "transformedUrl": "https://imgproxy.fourthwall.dev/abc/rt:fill/w:1200/sm:1/enc/x.webp", "width": 1200, "height": 1200 }
       ],
       "variants": [
-        { "id": "v-black-s", "name": "Black, S", "sku": "MS-B-S", "unitPrice": { "value": 19.93, "currency": "USD" }, "compareAtPrice": null,
+        { "id": "v-black-s", "name": "Mosquito Scan, 1993 — Black Print T-Shirt - Black, S", "sku": "MS-B-S", "unitPrice": { "value": 19.93, "currency": "USD" }, "compareAtPrice": null,
           "attributes": { "description": "Black, S", "color": { "name": "Black", "swatch": "#000000" }, "size": { "name": "S" } },
           "stock": { "type": "UNLIMITED" }, "images": [] },
         { "id": "v-black-3xl", "name": "Black, 3XL", "sku": "MS-B-3XL", "unitPrice": { "value": 23.93, "currency": "USD" }, "compareAtPrice": null,

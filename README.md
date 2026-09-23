@@ -219,8 +219,11 @@ come back on the order next to the UTM tags, so an order says which page sold
 it.
 
 **The shop's own cart cannot be read.** Its cookies belong to its domain, and
-anything that tries to share them breaks in Safari. What the package holds is
-a second cart that goes to the same checkout. It does not mirror the shop's.
+anything that tries to share them breaks in Safari. It works the other way,
+though. Seen on a live shop on 2026-09-23: once the buyer presses «checkout»,
+the cart made here *becomes* the shop's cart and is still in `{shop}/cart`
+if they wander off. The id is dropped here at that moment, so our icon goes
+back to zero while the shop carries on.
 
 ## Promotions and supporters
 
